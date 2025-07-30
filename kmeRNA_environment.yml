@@ -1,0 +1,17 @@
+name: kmeRNA_pipeline_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - scipy
+  - scikit-learn
+  - pandas
+  - matplotlib
+  - tensorflow
+  - joblib
+  - matplotlib
+  - biopython
+  - keras=3
+  - shap
