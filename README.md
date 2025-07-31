@@ -134,6 +134,8 @@ python src/04_get_SHAP_diff_values.py \
     --bg_sample_size 100 \ # number (int) of randomly selected traning examples to use as background for SHAP
     --tree # If the input model is tree-based
 ```
+## Generating eRNA-paRNA RIC-seq negative samples
+A series of auxiliary scripts are available under the `E-P_RICseq` folder in order to download the datasets, calculate appropriate splitting, generate the random regions for use in the rest of the pipeline. Adjust absolute paths prior to running.
 
 ## Resources
 ### eRNA-paRNA data
