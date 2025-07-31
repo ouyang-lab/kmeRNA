@@ -56,12 +56,12 @@ Continue to the next sections if applying kmeRNA to your own dataset and further
 RNA-RNA interactions files require 3 columns and any extra columns are ignored:
 
 **For double-negative models (traditional classification task):**
-1. The first column must contain the unique sequence/pair ID and any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
+1. The first column must contain the unique sequence/pair ID and if the full pipeline is being used, any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
 2. The second column is a sequence. Positive samples should be a consistent RNA type (i.e. eRNA, miRNA) throughout the dataset. Negative sequences should be paired with another negative sequence  in the third column.
 3. The third column is a sequence. Positive samples should be a consistent RNA type (i.e. paRNA, lncRNA) throughout the dataset. Negative sequences should be paired with another negative sequence  in the second column.
 
 **For mixed-negative models (query-target classification task):**
-1. The first column must contain the unique sequence/pair ID and any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
+1. The first column must contain the unique sequence/pair ID and if the full pipeline is being used, any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
 2. The second column is the query sequence. Positive samples should be a consistent RNA type (i.e. eRNA, miRNA) throughout the dataset. Do not include negative sequences in this position.
 3. The third column is the target sequence. Positive samples should be a consistent RNA type (i.e. paRNA, lncRNA) throughout the dataset. Add negative sequences in this column to generate negative samples.
 
