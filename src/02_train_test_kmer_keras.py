@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # MIT License
-# Copyright (c) 2025 Eric Nels Pederson, University of Massachusetts Amherst
+# Copyright (c) 2026 Eric Nels Pederson, University of Massachusetts Amherst
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 import os
@@ -9,6 +9,9 @@ import pickle
 import tensorflow as tf
 import keras
 from keras import initializers, layers, regularizers, optimizers, losses, models
+#from keras.losses import BinaryFocalCrossentropy
+#from sklearn.ensemble import RandomForestClassifier
+#from sklearn.model_selection import cross_val_score, RepeatedKFold
 import numpy as np
 from scipy import stats
 import random
@@ -17,6 +20,13 @@ import joblib
 import csv
 import time
 from matplotlib import pyplot as plt
+
+#args.seed_val=int(datetime.now().timestamp())
+#args.seed_val=2813
+#print(''.join('NN seed: ' + str(args.seed_val)))
+#os.environ['PYTHONHASHSEED']=str(args.seed_val)
+#random.seed(args.seed_val)
+#np.random.seed(args.seed_val)
 
 # declare classes for Keras callbacks:
 # for storing all of the losses during training
@@ -88,6 +98,10 @@ class LinearDecayLR(keras.callbacks.Callback):
         self.old_lr = None
         self.time_start=time.time()
     
+    #def on_train_batch_end(self, batch, logs=None):
+    #    if self.initial_loss is None:
+    #        self.initial_loss = logs.get("loss")
+    #        print(f"Initial loss set to {self.initial_loss:.7f}")
     def on_train_batch_end(self, batch, logs=None):
         logs = logs or {}
         loss = logs.get("val_loss", logs.get("loss"))
@@ -100,6 +114,11 @@ class LinearDecayLR(keras.callbacks.Callback):
         if current_loss is None or self.initial_loss is None:
             return
 
+    #def on_epoch_end(self, epoch, logs=None):
+    #    logs = logs or {}
+    #    current_loss = logs.get("loss")
+    #    if current_loss is None or self.initial_loss is None:
+    #        return
         
         # Compute new learning rate
         loss_reduction = max(0, self.initial_loss - current_loss)
@@ -254,6 +273,50 @@ def load_model_data(file_path):
 def prepare_data(embedded_data, labels):
     return np.array(embedded_data), np.array(labels)
 
+def create_model_optimal_orig(input_shape): # epochs=5   
+    #depth_dim = max_depth_dim(input_shape)
+    #''' initialize '''
+    model = models.Sequential()
+    #''' input layer. kernel and bias intialization. 1024 seems to work well. tanh is the best activation func '''
+    model.add(layers.Dense(1024, 
+        activation='tanh',
+        input_shape=input_shape,
+        kernel_initializer='ones',
+        bias_initializer='zeros'))
+    model.add(layers.Dense(2048, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
+    model.add(layers.Dropout(0.25,seed=args.seed_val))
+    model.add(layers.Dense(1024, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
+    model.add(layers.Dropout(0.1,seed=args.seed_val+1))
+    model.add(layers.Dense(512, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
+    model.add(layers.Dropout(0.01,seed=args.seed_val+2))
+    model.add(layers.Dense(256, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
+    model.add(layers.Dropout(0.005,seed=args.seed_val+3))
+    model.add(layers.Dense(128, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
+    model.add(layers.Dropout(0.005,seed=args.seed_val+4))
+    model.add(layers.Dense(64, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
+    model.add(layers.Dropout(0.001,seed=args.seed_val+5))
+    model.add(layers.Dense(32, activation='gelu',
+        kernel_regularizer=tf.keras.regularizers.L1L2(l1=2e-5,l2=1e-4)))
+    model.add(layers.Flatten())                 
+    model.add(layers.Dense(32, activation='gelu'))
+    #model.add(layers.Dense(1, activation='sigmoid'))
+    model.add(layers.Dense(2, activation='softmax'))
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=0.0001,
+            beta_1=0.9, 
+            beta_2=0.999), 
+        #loss='sparse_categorical_crossentropy',
+        loss=tf.keras.losses.CategoricalCrossentropy(),
+        metrics=[
+            tf.keras.metrics.TruePositives(thresholds=0.5,name="T"),
+            tf.keras.metrics.FalsePositives(thresholds=0.5,name="F"),
+            tf.keras.metrics.AUC(curve='ROC',name="AUROC"),
+            tf.keras.metrics.AUC(curve='PR',name="AUPRC"),
+            #tf.keras.metrics.AUC(from_logits=False,curve='ROC',name="AUROC"),
+            #tf.keras.metrics.AUC(from_logits=False,curve='PR',name="AUPRC"),
+            tf.keras.metrics.CategoricalAccuracy(name="Acc")])
+    return model
 
 def create_model_optimal(input_shape,args):    
     #depth_dim = max_depth_dim(input_shape)
@@ -261,18 +324,25 @@ def create_model_optimal(input_shape,args):
     model = models.Sequential()
     #''' input layer. kernel and bias intialization. 1024 seems to work well. tanh is the best activation func '''
     # input_shape: (batch,2234,1)
-    #if args.max_k <= 5:
-    nodes1=1024
-    nodes2=512
+    if args.max_k < 5:
+        nodes1=1024
+        nodes2=512
+        l1_val=5e-5
+        l2_val=5e-5
+    else:
+        nodes1=2048
+        nodes2=512
+        l1_val=1e-4
+        l2_val=1e-4
     nodes3=256
     nodes4=64
     nodes5=32
     nodes6=32
-    l1_val=5e-5
-    l2_val=5e-5
-
+    
     model.add(layers.Input(input_shape))
-    model.add(layers.Dense(nodes1, activation='tanh', kernel_initializer='ones', bias_initializer='zeros'))
+    #model.add(layers.LayerNormalization())
+    #model.add(layers.Dense(nodes1, activation='tanh', kernel_initializer='ones', bias_initializer='zeros'))
+    model.add(layers.Dense(nodes1, activation='tanh', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
     model.add(layers.Dropout(float(args.drop1/(nodes2*(nodes1+1))),seed=args.seed_val+0))
     model.add(layers.Dense(nodes2, activation='gelu', kernel_constraint=tf.keras.constraints.MaxNorm(5)))
     model.add(layers.Dropout(float(args.drop2/(nodes3*(nodes2+1))),seed=args.seed_val+1))    
@@ -325,8 +395,7 @@ def main():
     parser.add_argument("--drop2",type=float,default=1,help="Number of nodes (float) to drop between 2nd and 3rd dense layer")
     parser.add_argument("--drop3",type=float,default=1,help="Number of nodes (float) to drop between 3rd and 4th dense layer")
     parser.add_argument("--drop4",type=float,default=1,help="Number of nodes (float) to drop between 4th and 5th dense layer")
-    parser.add_argument("--task",type=str,default="RNA-RNA",choices=["RNA-RNA","miRNA-RNA","sRNA-mRNA"],required=False)
-    parser.add_argument("--save_best_epochs",action='store_true',help="Save the Keras models at each epoch if the loss or validation loss is lowest so far.")
+    parser.add_argument("--task",type=str,default="RNA-RNA",choices=["RNA-RNA","miRNA-RNA","piRNA-RNA","RNA-IP","DNA-IP","DNA"],required=False)
     #parser.add_argument("--output_mini_prob",help="Path to mini_output",required=False)
     args = parser.parse_args()
     
@@ -375,6 +444,9 @@ def main():
     elif args.model_out:
         if args.task=="RNA-RNA":
             if not args.batch_size:
+                #batch_size_out=84
+                #batch_size_out=72
+                #batch_size_out=48
                 batch_size_out=48
             else:
                 batch_size_out=args.batch_size
@@ -383,21 +455,31 @@ def main():
         elif args.task=="miRNA-RNA":
             if not args.batch_size:
                 batch_size_out=64
-                print(f"Default batch size: {batch_size_out}")
-                print("Consider adjusting this parameter using the --batch_size argument")
             else:
                 batch_size_out=args.batch_size
             model = create_model_optimal(input_shape,args)
             print("miRNA-RNA NN model initialized")
-        elif args.task=="sRNA-RNA":
+        elif args.task=="piRNA-RNA":
             if not args.batch_size:
-                batch_size_out=80
-                print(f"Default batch size: {batch_size_out}")
-                print("Consider adjusting this parameter using the --batch_size argument")
+                batch_size_out=64
             else:
                 batch_size_out=args.batch_size
             model = create_model_optimal(input_shape,args)
-            print("sRNA-RNA NN model initialized")
+            print("piRNA-RNA NN model initialized")
+        elif args.task=="RNA-IP":
+            if not args.batch_size:
+                batch_size_out=128
+            else:
+                batch_size_out=args.batch_size
+            model = create_model_optimal(input_shape,args)
+            print("RNA-IP NN model initialized")
+        elif args.task=="DNA" or args.task=="DNA-IP":
+            if not args.batch_size:
+                batch_size_out=48
+            else:
+                batch_size_out=args.batch_size
+            model = create_model_optimal(input_shape,args)
+            print("DNA NN model initialized")
 
     # Create and compile the model
     SHUFFLE_FLAG=True # 'batch', True or False
@@ -411,17 +493,13 @@ def main():
                 restore_best_weights=True,
                 patience=2,
                 verbose=1)
-    if args.save_best_epochs:
-        callback_list = [
-                early_stop_callback, # built in early stopping
-                BatchMetrics(), # saves and plots batch loss during training and predicting
-                LinearDecayLR(), # slowly decreases LR over time for stability and convergence
-                SaveModelCallback(model_path=args.model_out, model_name=args.task)] # saves model to file if loss if loss is less than minimum
-    else:
-                callback_list = [
-                    early_stop_callback, # built in early stopping
-                    BatchMetrics(), # saves and plots batch loss during training and predicting
-                    LinearDecayLR()]
+
+    callback_list = [
+            early_stop_callback, # built in early stopping
+            LinearDecayLR()] #, # slowly decreases LR over time for stability and convergence
+            #BatchMetrics(), # saves and plots batch loss during training and predicting
+            #SaveModelCallback(model_path=args.model_out, model_name=args.task)] # saves model to file if loss if loss is less than minimum
+
     if not args.model_in:
         # Train the model
         print("Training the NN model...")
@@ -453,7 +531,11 @@ def main():
     if args.output_train_prob:
         print("Predicting NN training data probabilities")
         train_probabilities = model.predict(train_data,batch_size=batch_size_out,verbose=2)
+        #train_probabilities = model.predict(train_data,batch_size=batch_size_out,verbose=2,callbacks=[BatchMetrics()])
         
+        #if args.plot_path:
+        #    plot_batch_loss(BatchMetrics, args.plot_path+'.pred_train_batch_loss.pdf',pred=True)
+        #    print("NN post-training prediction batch loss complete")
         scores_train_probs = []
         prob = str()
         for pos in range(len(train_labels)):
@@ -476,6 +558,10 @@ def main():
     if args.output_test_prob:
         print("Predicting NN testing data probabilities")
         test_probabilities = model.predict(test_data,batch_size=batch_size_out,verbose=2)
+        #test_probabilities = model.predict(test_data,batch_size=batch_size_out,verbose=2,callbacks=[BatchMetrics()])
+        #if args.plot_path:
+        #    plot_batch_loss(BatchMetrics, args.plot_path+'.pred_test_batch_loss.pdf',pred=True)
+        #    print("NN prediction testing batch loss complete")
         scores_test_probs = []
         prob = str()
         for pos in range(len(test_labels)):

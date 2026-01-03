@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # MIT License
-# Copyright (c) 2025 Eric Nels Pederson, University of Massachusetts Amherst
+# Copyright (c) 2026 Eric Nels Pederson, University of Massachusetts Amherst
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
-
 import argparse
 import numpy as np
 import scipy
 from sklearn.metrics import classification_report, roc_auc_score, roc_curve, precision_recall_curve, average_precision_score
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d 
-
+from sklearn.utils import shuffle
 
 def interpolate_roc(thresholds, tprs, fprs, target_threshold):
     """
@@ -123,6 +122,8 @@ def calculate_roc_auc(args,ground_truth, predicted_probabilities):
     Returns:
     float: ROC AUC score.
     """
+    ground_truth, predicted_probabilities = shuffle(
+        ground_truth, predicted_probabilities, random_state=42)
     auc_out = roc_auc_score(ground_truth, predicted_probabilities)
     fpr, tpr, thresholds = roc_curve(ground_truth, predicted_probabilities)
     if args.threshold_constr:
@@ -145,6 +146,8 @@ def calculate_prc_auc(ground_truth, predicted_probabilities):
     Returns:
     float: ROC AUC score.
     """
+    ground_truth, predicted_probabilities = shuffle(
+        ground_truth, predicted_probabilities, random_state=42)
     auprc_out = average_precision_score(ground_truth, predicted_probabilities)
     precision, recall, thresholds = precision_recall_curve(ground_truth, predicted_probabilities)
     #optimal_threshold = calculate_optimal_threshold(thresholds,tpr, fpr)
