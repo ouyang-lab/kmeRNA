@@ -7,7 +7,7 @@
 </div>
 
 ## Introduction
-The kmeRNA embedding strategy is a straightforward processing step that takes a list of nucleic acid sequence pairs. In general, we describe the traditional double-negative model (negative samples have negative sequences) and the mixed-negative model (query-target), which is organized such that the first sequence (query) and second sequence (target) are each of the consistent type of RNA involved in the interaction. For example, to predict which RNA transcripts bind to a particular miRNA, the query would be the miRNA and the target would consist of true and false target sequences. See [Pederson <i>et al.</i> 2025](https://www.doi.org/) for more details. The kmeRNA pipeline has been tested using eRNA-paRNA & miRNA-lncRNA in eukaryotes and sRNA-mRNA data in prokaryotes (See Resources section).
+The kmeRNA embedding strategy is a straightforward processing step that takes a list of nucleic acid sequence pairs organized such that the first sequence (query) and second sequence (target) are each of the consistent type of RNA involved in the interaction. For example, to predict which RNA transcripts bind to a particular miRNA, the query would be the miRNA and the target would consist of true and false target sequences. See [Pederson <i>et al.</i> 2026](https://www.doi.org/) for more details. The kmeRNA pipeline has been tested using eRNA-paRNA & miRNA-lncRNA in eukaryotes and sRNA-mRNA data in prokaryotes (See Resources section).
 We include a full pipeline for training, testing and validating RNA-RNA interaction models for deep learning and tree-based models with optional feature importance analysis either through scikit-learn (Gini index) tree-based models or differential SHAP scores. 
 Note: while untested, we expect kmeRNA to be compatible with RNA-DNA and DNA-DNA interaction datasets as well.
 
@@ -23,8 +23,10 @@ The following is required for standalone kmeRNA embedding step:
 The following packages are required for the full kmeRNA pipeline:
 * `Python 3.9+`
 * `numpy 2.0+`
+* `viennarna`
 * `scipy`
 * `scikit-learn`
+* `scikit-bio`
 * `pandas`
 * `matplotlib`
 * `tensorflow`
@@ -34,6 +36,8 @@ The following packages are required for the full kmeRNA pipeline:
 * `shap`
 * `bedtools`
 * `samtools`
+* `pybedtools`
+* `pyfaidx`
 
 ### CPU install
 First, create the environment using the `kmeRNA_environment.yml` file and activate the environment: <br />
@@ -48,6 +52,7 @@ GPU-aware Keras and TensorFlow installation is machine-dependent. Please refer t
 ### Example Code & Data
 An example driver script is available in `example_scripts/` with relative paths to the example data in `kmeRNA_eRNA-paRNA_RICseq_example_data/`. 
 Follow instructions at the top of `example_scripts/example_kmeRNA_script.sh` to run kmeRNA on a ~70%-15%-15% data split of HeLa eRNA-paRNA RIC-seq data, which was used in the original kmeRNA publication. Output models and results files can be found in `kmeRNA_eRNA-paRNA_RICseq_example_data/split_train/results`, `kmeRNA_eRNA-paRNA_RICseq_example_data/split_test/results` and `kmeRNA_eRNA-paRNA_RICseq_example_data/split_validate/results`. 
+For generating negative sequences for enhancer-promoter RIC-seq modeling, refer to the pipeline in `E-P_RICseq/`. 
 
 Continue to the next sections if applying kmeRNA to your own dataset and further explanation of each script.
 
@@ -55,13 +60,7 @@ Continue to the next sections if applying kmeRNA to your own dataset and further
 #### Input file formatting:
 RNA-RNA interactions files require 3 columns and any extra columns are ignored:
 
-**For double-negative models (traditional classification task):**
-1. The first column must contain the unique sequence/pair ID and if the full pipeline is being used, any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
-2. The second column is a sequence. Positive samples should be a consistent RNA type (i.e. eRNA, miRNA) throughout the dataset. Negative sequences should be paired with another negative sequence  in the third column.
-3. The third column is a sequence. Positive samples should be a consistent RNA type (i.e. paRNA, lncRNA) throughout the dataset. Negative sequences should be paired with another negative sequence  in the second column.
-
-**For mixed-negative models (query-target classification task):**
-1. The first column must contain the unique sequence/pair ID and if the full pipeline is being used, any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
+1. The first column must contain the unique sequence/pair ID and any negative pairs should have a "\_neg" as the suffix if using `src/00_extract_labels.sh`.
 2. The second column is the query sequence. Positive samples should be a consistent RNA type (i.e. eRNA, miRNA) throughout the dataset. Do not include negative sequences in this position.
 3. The third column is the target sequence. Positive samples should be a consistent RNA type (i.e. paRNA, lncRNA) throughout the dataset. Add negative sequences in this column to generate negative samples.
 
@@ -73,7 +72,7 @@ sh src/00_extract_labels.sh \
 The label generating step with `src/00_extract_labels.sh` can be skipped if you have already generated a text file with appropriate class assignments (0 or 1).
 ```sh
 
-python src/01_kmer_feature_counts.py \
+python src/01_kmer_feature_counts.multi.py \
     --input /path/to/input/file.tsv.gz \ # It is recommended that files are gzipped 
     --output /path/to/output/file.tsv.gz \ # It is recommended that files are gzipped
     --out_format ['csv','pkl','csv,pkl'] \ # specifies the output format as either csv, pkl or both.
@@ -134,14 +133,12 @@ python src/04_get_SHAP_diff_values.py \
     --bg_sample_size 100 \ # number (int) of randomly selected traning examples to use as background for SHAP
     --tree # If the input model is tree-based
 ```
-## Generating eRNA-paRNA RIC-seq negative samples
-A series of auxiliary scripts are available under the `E-P_RICseq` folder in order to download the datasets, calculate appropriate splitting, generate the random regions for use in the rest of the pipeline. Adjust absolute paths prior to running.
 
 ## Resources
 ### eRNA-paRNA data
 [Enhancer-Promoter RIC-seq](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE190214)
-### miRNA-lncRNA data
-[lncRNASNP2](https://guolab.wchscu.cn/lncRNASNP/#!/)
+### miRNA-RNA data
+[miRBench](https://github.com/katarinagresova/miRBench/)
 ### sRNA-mRNA data
 [sRNA-mRNA](https://zenodo.org/records/14590335)
 
