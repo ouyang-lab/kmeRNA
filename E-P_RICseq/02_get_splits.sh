@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MIT License
-# Copyright (c) 2025 Eric Nels Pederson, University of Massachusetts Amherst
+# Copyright (c) 2026 Eric Nels Pederson, University of Massachusetts Amherst
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 # K562 IMR90 HeLa hNPC HepG2 GM12878 H1

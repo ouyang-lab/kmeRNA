@@ -1,6 +1,6 @@
 #!/bin/bash
 # MIT License
-# Copyright (c) 2025 Eric Nels Pederson, University of Massachusetts Amherst
+# Copyright (c) 2026 Eric Nels Pederson, University of Massachusetts Amherst
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 genome_fasta=/path/to/genome/Homo_sapiens.GRCh37.75.dna_sm.toplevel.fa
