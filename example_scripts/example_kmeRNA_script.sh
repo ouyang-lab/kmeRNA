@@ -1,6 +1,6 @@
 #!/bin/bash
 # MIT License
-# Copyright (c) 2025 Eric Nels Pederson, University of Massachusetts Amherst
+# Copyright (c) 2026 Eric Nels Pederson, University of Massachusetts Amherst
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 # Preparing script:
@@ -73,21 +73,21 @@ fi
 # Embedding
 if [ $embedding -gt 0 ]
 then
-	python3 ${script_dir}/01_kmer_feature_counts.py	 \
+	python3 ${script_dir}/01_kmer_feature_counts.multi.py	 \
 		--input ${train_input_dat}.tsv.gz \
 		--output ${train_input_dat}.k${Kmin}_k${K}.embed.out \
 		--out_format pkl \
 		--min_k ${Kmin} \
 		--max_k ${K} \
 		--verbose
-	python3 ${script_dir}/01_kmer_feature_counts.py	 \
+	python3 ${script_dir}/01_kmer_feature_counts.multi.py	 \
 		--input ${test_input_dat}.tsv.gz \
 		--output ${test_input_dat}.k${Kmin}_k${K}.embed.out \
 		--out_format pkl \
 		--min_k ${Kmin} \
 		--max_k ${K} \
 		--verbose
-	python3 ${script_dir}/01_kmer_feature_counts.py	 \
+	python3 ${script_dir}/01_kmer_feature_counts.multi.py	 \
 		--input ${validate_input_dat}.tsv.gz \
 		--output ${validate_input_dat}.k${Kmin}_k${K}.embed.out \
 		--out_format pkl \
@@ -192,7 +192,7 @@ if [ $tree_shap -gt 0 ]
 then
 	model_in=${train_output_dat}.RNA.k${Kmin}_k${K}.RF.joblib
         echo "Training data SHAP RandomForest model"
-        python3 ${script_dir}/05_get_SHAP_values.py \
+        python3 ${script_dir}/04_get_SHAP_diff_values.py \
                 --model ${model_in} \
                 --tree \
                 --data ${train_input_dat}.k${Kmin}_k${K}.embed.out.pkl \
@@ -200,7 +200,7 @@ then
 
         model_in=${train_output_dat}.RNA.k${Kmin}_k${K}.ET.joblib
         echo "Training data SHAP ExtraTrees model"
-        python3 ${script_dir}/05_get_SHAP_values.py \
+        python3 ${script_dir}/04_get_SHAP_diff_values.py \
                 --model ${model_in} \
                 --tree \
                 --data ${train_input_dat}.k${Kmin}_k${K}.embed.out.pkl \
@@ -208,7 +208,7 @@ then
         
 	model_in=${train_output_dat}.RNA.k${Kmin}_k${K}.GB.joblib
         echo "Training data SHAP GradientBoosting model"
-        python3 ${script_dir}/05_get_SHAP_values.py \
+        python3 ${script_dir}/04_get_SHAP_diff_values.py \
                 --model ${model_in} \
                 --tree \
                 --data ${train_input_dat}.k${Kmin}_k${K}.embed.out.pkl \
@@ -234,7 +234,7 @@ then
 		zcat ${test_input_cross_cell}.tsv.gz |\
                         awk '{OFS="\t"}{if ($1~/neg/) {print 0} else {print 1}}' >\
                 ${test_labels_cross_cell}
-	                python3 ${script_dir}/01_kmer_feature_counts.py \
+	                python3 ${script_dir}/01_kmer_feature_counts.multi.py \
                         	--input ${test_input_cross_cell}.tsv.gz \
                        		--output ${test_input_cross_cell}.k${Kmin}_k${K}.embed.out.pkl \
                         	--out_format pkl \
@@ -277,7 +277,7 @@ then
 		zcat ${test_input_cross_cell}.tsv.gz |\
                         awk '{OFS="\t"}{if ($1~/neg/) {print 0} else {print 1}}' >\
                 ${test_labels_cross_cell}
-	                python3 ${script_dir}/01_kmer_feature_counts.py \
+	                python3 ${script_dir}/01_kmer_feature_counts.multi.py \
                         	--input ${test_input_cross_cell}.tsv.gz \
                        		--output ${test_input_cross_cell}.k${Kmin}_k${K}.embed.out.pkl \
                         	--out_format pkl \
